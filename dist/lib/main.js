@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.run = void 0;
 const core = require("@actions/core");
 const github = require("@actions/github");
 const queries_1 = require("./queries");
@@ -12,8 +13,8 @@ async function run() {
         required: true
     });
     const octokit = new github.GitHub(myToken);
-    const maxRetries = 5;
-    const waitMs = 5000;
+    const maxRetries = 60;
+    const waitMs = 60000;
     // fetch label data
     let labelData;
     try {
@@ -43,7 +44,7 @@ async function run() {
         tries++;
         // if merge status is unknown for any PR, wait a bit and retry
         if (pullrequestsWithoutMergeStatus.length > 0) {
-            core.debug(`...waiting for mergeable info...`);
+            core.debug(`...waiting for mergeable info (try ${tries}/${maxRetries}...`);
             await util_1.wait(waitMs);
         }
         try {
@@ -70,16 +71,16 @@ async function run() {
                 return label.node.id === conflictLabel.node.id;
             });
             if (isAlreadyLabeled) {
-                core.debug(`Skipping PR #${pullrequest.node.number}, it has conflicts but is already labeled`);
+                core.debug(`PR #${pullrequest.node.number} skipping, it has conflicts but is already labeled`);
             }
             else {
-                core.debug(`Labeling PR #${pullrequest.node.number}...`);
+                core.debug(`PR #${pullrequest.node.number} labeling...`);
                 try {
                     await queries_1.addLabelsToLabelable(octokit, {
                         labelIds: conflictLabel.node.id,
                         labelableId: pullrequest.node.id
                     });
-                    core.debug(`PR #${pullrequest.node.number} done`);
+                    core.debug(`PR #${pullrequest.node.number} labeled`);
                 }
                 catch (error) {
                     core.setFailed('addLabelsToLabelable request failed: ' + error);
@@ -93,7 +94,7 @@ async function run() {
     }
     let pullrequestsWithConflictResolution;
     pullrequestsWithConflictResolution = pullRequests.filter((pullrequest) => {
-        return pullrequest.node.mergeable !== 'CONFLICTING';
+        return pullrequest.node.mergeable === 'MERGEABLE';
     });
     // unlabel PRs without conflicts
     if (pullrequestsWithConflictResolution.length > 0) {
@@ -102,26 +103,26 @@ async function run() {
                 return label.node.id === conflictLabel.node.id;
             });
             if (!isAlreadyLabeled) {
-                core.debug(`Skipping PR #${pullrequest.node.number}, it has no conflicts and is not labeled`);
+                core.debug(`PR #${pullrequest.node.number} skipping unlabel, it has no conflicts and is not labeled`);
             }
             else {
-                core.debug(`Unlabeling PR #${pullrequest.node.number}...`);
+                core.debug(`PR #${pullrequest.node.number} unlabeling...`);
                 try {
                     await queries_1.removeLabelsFromLabelable(octokit, {
                         labelIds: conflictLabel.node.id,
                         labelableId: pullrequest.node.id
                     });
-                    core.debug(`PR #${pullrequest.node.number} done`);
+                    core.debug(`PR #${pullrequest.node.number} unlabeled`);
                 }
                 catch (error) {
-                    core.setFailed('addLabelsToLabelable request failed: ' + error);
+                    core.setFailed('removeLabelsToLabelable request failed: ' + error);
                 }
             }
         });
     }
     else {
         // nothing to do
-        core.debug('No PR has conflicts, congrats!');
+        core.debug('No PR has resolved conflicts!');
     }
 }
 exports.run = run;

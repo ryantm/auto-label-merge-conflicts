@@ -60,7 +60,7 @@ export async function run() {
     tries++;
     // if merge status is unknown for any PR, wait a bit and retry
     if (pullrequestsWithoutMergeStatus.length > 0) {
-      core.debug(`...waiting for mergeable info...`);
+      core.debug(`...waiting for mergeable info (try ${tries}/${maxRetries}...`);
       await wait(waitMs);
     }
 
@@ -99,16 +99,16 @@ export async function run() {
 
       if (isAlreadyLabeled) {
         core.debug(
-          `Skipping PR #${pullrequest.node.number}, it has conflicts but is already labeled`
+          `PR #${pullrequest.node.number} skipping, it has conflicts but is already labeled`
         );
       } else {
-        core.debug(`Labeling PR #${pullrequest.node.number}...`);
+        core.debug(`PR #${pullrequest.node.number} labeling...`);
         try {
           await addLabelsToLabelable(octokit, {
             labelIds: conflictLabel.node.id,
             labelableId: pullrequest.node.id
           });
-          core.debug(`PR #${pullrequest.node.number} done`);
+          core.debug(`PR #${pullrequest.node.number} labeled`);
         } catch (error) {
           core.setFailed('addLabelsToLabelable request failed: ' + error);
         }
@@ -138,24 +138,24 @@ export async function run() {
 
         if (!isAlreadyLabeled) {
           core.debug(
-            `Skipping PR #${pullrequest.node.number}, it has no conflicts and is not labeled`
+            `PR #${pullrequest.node.number} skipping unlabel, it has no conflicts and is not labeled`
           );
         } else {
-          core.debug(`Unlabeling PR #${pullrequest.node.number}...`);
+          core.debug(`PR #${pullrequest.node.number} unlabeling...`);
           try {
             await removeLabelsFromLabelable(octokit, {
               labelIds: conflictLabel.node.id,
               labelableId: pullrequest.node.id
             });
-            core.debug(`PR #${pullrequest.node.number} done`);
+            core.debug(`PR #${pullrequest.node.number} unlabeled`);
           } catch (error) {
-            core.setFailed('addLabelsToLabelable request failed: ' + error);
+            core.setFailed('removeLabelsToLabelable request failed: ' + error);
           }
         }
       }
     );
   } else {
     // nothing to do
-    core.debug('No PR has conflicts, congrats!');
+    core.debug('No PR has resolved conflicts!');
   }
 }

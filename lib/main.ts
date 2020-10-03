@@ -18,8 +18,8 @@ export async function run() {
   });
 
   const octokit = new github.GitHub(myToken);
-  const maxRetries = 5;
-  const waitMs = 5000;
+  const maxRetries = 10;
+  const waitMs = 60000;
 
   // fetch label data
   let labelData;

@@ -60,7 +60,7 @@ export async function run() {
     tries++;
     // if merge status is unknown for any PR, wait a bit and retry
     if (pullrequestsWithoutMergeStatus.length > 0) {
-      core.debug(`...waiting for mergeable info (try ${tries}/${maxRetries}...`);
+      core.debug(`...waiting for mergeable info (try ${tries}/${maxRetries})...`);
       await wait(waitMs);
     }
 
